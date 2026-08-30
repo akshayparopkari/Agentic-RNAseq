@@ -32,7 +32,7 @@ library("IHW", warn.conflicts = FALSE, quietly = T, verbose = F)
 args <- commandArgs(trailingOnly = TRUE)
 
 if (length(args) < 4) {
-  stop("Usage: Rscript deseq_agentic.R gene_raw_counts.txt metadata.xlsx deseq2_lfc.txt MA_plot.pdf [reference_level]")
+  stop("Usage: Rscript deseq.R gene_raw_counts.txt metadata.xlsx deseq2_lfc.txt MA_plot.pdf [reference_level]")
 }
 
 coldata <- as.data.frame(read_excel(args[2]))
