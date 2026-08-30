@@ -1,0 +1,14 @@
+# Static pipeline configuration.
+#
+# Per-sample decisions (which trim attempt was accepted, which samples are
+# included, the DESeq2 reference level) are deliberately NOT set here --
+# those are the agent's decisions, supplied per invocation via
+# `--config key=value`, not fixed pipeline settings. See Snakefile docstring.
+
+metadata: "data/metadata.xlsx"
+raw_fastq_dir: "data/raw"
+genome_dir: "data/ca_genome"
+truseq_ref: "pipeline/truseq.fa.gz"
+polya_ref: "pipeline/polyA.fa.gz"
+results_dir: "results"
+threads: 8
