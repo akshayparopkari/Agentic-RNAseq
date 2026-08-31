@@ -19,8 +19,7 @@
 #
 # If reference_level is omitted, it defaults to whichever Condition value
 # sorts first alphabetically -- NOT necessarily "WT". This is a real
-# behavior change from the original script and should be called out
-# explicitly wherever this script is used, since it can flip the sign of
+# behavior change from the original script since it can flip the sign of
 # log2FoldChange relative to the original published results.
 #
 ###############################################################################
@@ -37,17 +36,16 @@ if (length(args) < 4) {
 
 coldata <- as.data.frame(read_excel(args[2]))
 raw.counts <- as.matrix(read.delim(file = args[1], row.names = 1))
-raw.counts <- raw.counts[, coldata$Sample_ID]
 
-# MUST BE TRUE, same sanity checks as the original script
-stopifnot(all(coldata$Sample_ID %in% colnames(raw.counts)))
-stopifnot(all(coldata$Sample_ID == colnames(raw.counts)))
+stopifnot(all(coldata$run_accession %in% colnames(raw.counts)))
+raw.counts <- raw.counts[, coldata$run_accession]
+stopifnot(all(coldata$run_accession == colnames(raw.counts)))
+colnames(raw.counts) <- coldata$Sample_ID
 
 dds <- DESeqDataSetFromMatrix(countData = raw.counts,
                               colData = coldata,
                               design = ~ Condition)
 
-# --- this block replaces the original hardcoded factor levels ---
 condition_levels <- unique(as.character(coldata$Condition))
 reference_level <- if (length(args) >= 5) args[5] else sort(condition_levels)[1]
 

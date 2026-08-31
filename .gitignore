@@ -19,6 +19,8 @@ venv/
 # Data & run artifacts — never commit raw sequencing data or pipeline outputs
 data/
 logs/
+results/
+pipeline/annotation/
 *.fastq
 *.fastq.gz
 *.fq

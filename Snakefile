@@ -87,6 +87,16 @@ def required_reference_level(wildcards):
     return config["reference_level"]
 
 
+def trim_quality_threshold(wildcards):
+    """
+    Per-(sample, attempt) trimq override, e.g. --config SRR123_attempt2_trimq=30
+    for a stricter retry after a failed QC check. Defaults to 20, the
+    original published pipeline's value, when no override is given.
+    """
+    key = f"{wildcards.sample}_attempt{wildcards.attempt}_trimq"
+    return config.get(key, 20)
+
+
 rule all:
     # Convenience target for a manual, full run. The agent never requests
     # this directly -- it requests the intermediate targets below, one
@@ -104,13 +114,14 @@ rule trim:
         f"{config['results_dir']}/trim/{{sample}}_attempt{{attempt}}_trimmed.fastq"
     params:
         truseq_ref=config["truseq_ref"],
-        polya_ref=config["polya_ref"]
+        polya_ref=config["polya_ref"],
+        trimq=trim_quality_threshold
     log:
         f"{config['results_dir']}/logs/trim_{{sample}}_attempt{{attempt}}.log"
     shell:
         "bbduk.sh in={input} out={output} "
         "ref={params.truseq_ref},{params.polya_ref} "
-        "k=13 ktrim=r mink=5 qtrim=r trimq=20 minlength=20 "
+        "k=13 ktrim=r mink=5 qtrim=r trimq={params.trimq} minlength=20 "
         "> {log} 2>&1"
 
 
