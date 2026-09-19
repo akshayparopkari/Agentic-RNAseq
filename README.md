@@ -1,4 +1,8 @@
-# Agentic-RNAseq
+<p align="center">
+  <img src="assets/logo.png" alt="Agentic-RNAseq logo" width="200">
+</p>
+
+<h1 align="center">Agentic-RNAseq</h1>
 
 This is a weekend project built on top of my published 3'-TagSeq RNA-seq pipeline (github.com/akshayparopkari/RNAseq). The question I wanted to answer: where does an AI agent actually add value on top of a bioinformatics pipeline that already works, without replacing the deterministic tools that make the results reproducible in the first place.
 
