@@ -21,6 +21,7 @@ data/
 logs/
 results/
 pipeline/annotation/
+evals/cases/*/output
 *.fastq
 *.fastq.gz
 *.fq

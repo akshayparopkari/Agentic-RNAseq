@@ -222,7 +222,7 @@ dependencies:
   - samtools=1.15.1
   - sed=4.8
   - setuptools=65.3.0
-  - star=2.7.10a
+  - star=2.7.10b
   - sysroot_linux-64=2.12
   - tk=8.6.12
   - tktable=2.10

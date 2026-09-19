@@ -1,9 +1,8 @@
-# Static pipeline configuration
-metadata: "data/metadata.xlsx"
-raw_fastq_dir: "data/raw"
-genome_dir: "data/ca_genome"
-truseq_ref: "pipeline/truseq.fa.gz"
-polya_ref: "pipeline/polyA.fa.gz"
-results_dir: "results"
+annotation_gff: pipeline/annotation/C_albicans_SC5314_A21_current_features.gff
+genome_dir: data/ca_genome
+metadata: data/metadata.xlsx
+polya_ref: pipeline/polyA.fa.gz
+raw_fastq_dir: data/raw
+results_dir: results
 threads: 8
-annotation_gff: "pipeline/annotation/C_albicans_SC5314_A21_current_features.gff"
+truseq_ref: pipeline/truseq.fa.gz

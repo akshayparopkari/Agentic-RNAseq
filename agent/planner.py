@@ -1,10 +1,3 @@
-"""
-Block 2: the planning loop. Ties agent/tools.py's functions together into
-one Claude-driven run: pick reference_level from real metadata, drive each
-sample through trim -> QC -> (retry/exclude/proceed) -> align, then request
-the final deseq2 result.
-"""
-
 import json
 
 from anthropic import Anthropic
@@ -20,6 +13,7 @@ from agent.tools import (
     parse_fastqc_summary,
     get_metadata_conditions,
 )
+from agent.critic import verify_claim_against_annotation
 
 MODEL = "claude-haiku-4-5-20251001"
 
@@ -61,13 +55,29 @@ Your job, in order:
    included sample list, their accepted attempts, and your chosen
    reference_level.
 4. For each gene you report on, call get_gene_annotation(gene_id). If
-   found=true, cite its description. If found=false, say plainly that no
-   annotation was found for that gene -- do not describe its function
-   from your own knowledge. Summarize statistics (fold change, p-value)
-   directly from run_deseq2's output either way. Report each gene as one
-   compact line: gene_id, log2FoldChange, padj, then the annotation description
-   verbatim. No headers, no per-gene bolded titles, no restating the question.
-   Facts only.
+   found=false, say plainly that no annotation was found for that gene --
+   do not describe its function from your own knowledge, and do not call
+   verify_claim for it. If found=true, a real record was retrieved --
+   never describe that gene as having no annotation, not annotated, or
+   unavailable, no matter how sparse the annotation is (even "protein of
+   unknown function" is a real, retrieved record, not an absence of one)
+   and no matter what you decide to do with verify_claim for it. Summarize
+   its function in your own words -- do not copy the description verbatim,
+   a verbatim copy defeats the point of this step. This applies even when
+   the annotation is sparse or when your summary only adds a detail like
+   where or when the gene is induced -- call verify_claim for every
+   found=true gene without exception. There is no claim too small or too
+   well-supported-sounding to skip this step for. Call verify_claim with
+   that gene_id, your own-words summary as claimed_function, and the full
+   get_gene_annotation result as annotation_record. Only include the claim
+   in your final report if verify_claim returns supported=true, or if you
+   override a failed verdict with an explicit reason grounded in the
+   actual annotation text -- never silently skip verify_claim, and never
+   silently keep a claim it failed. Summarize statistics (fold change,
+   p-value) directly from run_deseq2's output either way. Report each gene
+   as one compact line: gene_id, log2FoldChange, padj, then your verified
+   summary of its function. No headers, no per-gene bolded titles, no
+   restating the question. Facts only.
 
 Your final answer must restate every decision made this session, not just
 the most recent step. Never infer, pattern-match, or assume a correspondence
@@ -94,6 +104,11 @@ TOOL_IMPL = {
     "get_gene_annotation": get_gene_annotation,
     "resolve_sample_id": resolve_sample_id,
     "get_top_deseq2_genes": get_top_deseq2_genes,
+    "verify_claim": lambda gene_id, claimed_function, annotation_record: (
+        verify_claim_against_annotation(
+            gene_id, claimed_function, annotation_record
+        ).as_dict()
+    ),
 }
 
 

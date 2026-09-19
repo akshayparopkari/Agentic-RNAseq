@@ -148,6 +148,8 @@ def get_metadata_conditions(metadata_xlsx: str) -> dict:
     df = pd.read_excel(metadata_xlsx)
     if "Condition" not in df.columns:
         return {"error": "metadata file has no 'Condition' column"}
+    if len(df) == 0:
+        return {"error": "metadata file has zero data rows"}
     return {
         "condition_levels": sorted(df["Condition"].dropna().unique().tolist()),
         "sample_count": len(df),
@@ -205,15 +207,20 @@ def parse_fastqc_summary(qc_dir: str, trimmed_fastq: str) -> dict:
         modules[module] = status  # "PASS" | "WARN" | "FAIL"
 
     total_sequences = _extract_field(data_txt, r"Total Sequences\t(\d+)")
+    if total_sequences is None:
+        raise ValueError(
+            f"'Total Sequences' not found in {fastqc_zip}'s fastqc_data.txt -- "
+            "can't make a depth call without a real read count. Defaulting to "
+        )
     pct_gc = _extract_field(data_txt, r"%GC\t(\d+)")
     sequence_length = _extract_field(data_txt, r"Sequence length\t([\d\-]+)")
 
     return {
         "modules": modules,
-        "total_sequences": int(total_sequences) if total_sequences else None,
+        "total_sequences": int(total_sequences),
         "pct_gc": int(pct_gc) if pct_gc else None,
         "sequence_length": sequence_length,
-        "adapter_content_status": modules.get("Overrepresented sequences", "UNKNOWN"),
+        "adapter_content_status": modules.get("Adapter Content", "UNKNOWN"),
         "duplication_status": modules.get("Sequence Duplication Levels", "UNKNOWN"),
         "per_base_quality_status": modules.get("Per base sequence quality", "UNKNOWN"),
     }
@@ -355,13 +362,14 @@ def decide_qc_action(qc_summary: dict) -> str:
       - No sequences at all: nothing to retry. -> exclude.
       - Per-base quality FAIL: the trim didn't clean the read enough to
         trust alignment. -> retry (with a stricter trimq).
-      - Adapter/overrepresented-sequence FAIL after trimming: same idea,
+      - Adapter Content FAIL after trimming: same idea,
         trimming under-performed. -> retry.
       - Anything else FAIL/WARN (duplication, GC skew, etc.) without a
         quality or adapter problem: usually reflects real biology or
         library complexity, not something a retrim fixes. -> proceed.
     """
-    if not qc_summary.get("total_sequences"):
+    _MIN_USABLE_DEPTH = 1_000_000
+    if qc_summary.get("total_sequences", 0) < _MIN_USABLE_DEPTH:
         return "exclude"
     if qc_summary.get("per_base_quality_status") == "FAIL":
         return "retry"
@@ -586,6 +594,19 @@ TOOLS = [
             "type": "object",
             "properties": {"gene_id": {"type": "string"}},
             "required": ["gene_id"],
+        },
+    },
+    {
+        "name": "verify_claim",
+        "description": "Check whether a claimed gene function is actually supported by its retrieved annotation. Call this for every gene claim before including it in your final answer. You may override a failed verdict, but only with an explicit reason grounded in the actual annotation text -- never silently.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "gene_id": {"type": "string"},
+                "claimed_function": {"type": "string", "description": "Your own-words summary of the gene's function, not a verbatim copy."},
+                "annotation_record": {"type": "object", "description": "Full output of get_gene_annotation() for this gene_id."},
+            },
+            "required": ["gene_id", "claimed_function", "annotation_record"],
         },
     },
 ]
