@@ -60,6 +60,7 @@ snakemake <results_dir>/deseq2/deseq2_lfc.txt <results_dir>/deseq2/MA_plot.pdf \
   reference_level=<one of your metadata Condition values> \
   <sample1>_attempt=<N1> <sample2>_attempt=<N2> <...>
 ```
+</details>
 
 ### Full pipeline, with the agent making the QC and reference-level calls
 
