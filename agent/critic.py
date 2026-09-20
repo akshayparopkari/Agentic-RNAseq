@@ -122,8 +122,10 @@ def _get_nli_model():
 
 
 def _split_sentences(text: str) -> list:
-    sentences = re.split(r"(?<=[.!?])\s+", text.strip())
-    return [s.strip() for s in sentences if s.strip()]
+    text = text.strip()
+    protected = re.sub(r"\b([A-Z])\.\s+(?=[a-z])", r"\1<DOT> ", text)
+    sentences = re.split(r"(?<=[.!?])\s+", protected)
+    return [s.replace("<DOT>", ".").strip() for s in sentences if s.strip()]
 
 
 def _cosine_similarity(a, b) -> float:
@@ -139,17 +141,28 @@ def _cosine_similarity(a, b) -> float:
 
 def _most_similar_sentence(claim: str, annotation_sentences: list):
     model = _get_bi_encoder()
+    candidates = list(dict.fromkeys(annotation_sentences + [" ".join(annotation_sentences)]))
     claim_vec = model.encode(claim)
-    sentence_vecs = model.encode(annotation_sentences)
+    sentence_vecs = model.encode(candidates)
     sims = [_cosine_similarity(claim_vec, v) for v in sentence_vecs]
     best_idx = max(range(len(sims)), key=lambda i: sims[i])
-    return annotation_sentences[best_idx], sims[best_idx]
+    return candidates[best_idx], sims[best_idx]
 
 
 def _hedges_present(text: str) -> list:
     text_lower = text.lower()
     return [m for m in _HEDGE_MARKERS if re.search(rf"\b{re.escape(m)}\b", text_lower)]
 
+# Three-pass design, in order:
+#   1. Cosine similarity (bi-encoder) as a cheap topical prefilter -- rules
+#      out claims that aren't even about the same subject as the retrieved
+#      text.
+#   2. Cross-encoder NLI checks whether the claim is actually entailed by
+#      the closest matching sentence, not just topically related to it.
+#   3. An explicit hedge-word check, because NLI alone scores "putative
+#      adhesin" -> "adhesin" as entailment (dropping a hedge doesn't
+#      technically contradict the source) -- overclaiming needs its own
+#      rule, entailment won't catch it.
 
 def _check_semantic_support(
     gene_id: str, claimed_function: str, retrieved_annotation: str

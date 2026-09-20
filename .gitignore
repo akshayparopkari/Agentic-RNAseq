@@ -30,6 +30,7 @@ evals/cases/*/output
 *.sam
 *.bai
 *ReadsPerGene.out.tab
+assets/*cast
 
 # OS
 .DS_Store
