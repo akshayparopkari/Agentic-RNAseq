@@ -1,8 +1,39 @@
 <p align="left">
-  <img src="assets/logo.png" alt="Agentic-RNAseq logo" width="200">
+  <img src="assets/logo.png" alt="Agentic-RNAseq logo" width="100">
 </p>
 
 <h1 align="left">Agentic-RNAseq</h1>
+
+ <!-- Line 1: Core AI & Pipeline Architecture -->
+![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB?style=flat-square&logo=python&logoColor=white)
+![Snakemake](https://img.shields.io/badge/Snakemake-9.24-green?style=flat-square)
+![Anthropic](https://img.shields.io/badge/LLM-Claude-D97706?style=flat-square&logo=anthropic&logoColor=white)
+![Sentence-Transformers](https://img.shields.io/badge/NLI-Sentence--Transformers-FFD21E?style=flat-square&logo=huggingface&logoColor=black)
+![PyTorch CPU](https://img.shields.io/badge/PyTorch-2.13_CPU-EE4C2C?style=flat-square&logo=pytorch&logoColor=white)
+
+<!-- Line 2: Bio Engine & License -->
+![STAR 2.7.10b](https://img.shields.io/badge/STAR-2.7.10b-226699?style=flat-square)
+![DESeq2](https://img.shields.io/badge/DESeq2-1.46.0-276DC3?style=flat-square&logo=r&logoColor=white)
+![License](https://img.shields.io/badge/License-BSD_3--Clause-blue?style=flat-square)
+
+This is a weekend project built on top of my published 3'-TagSeq RNA-seq pipeline (github.com/akshayparopkari/RNAseq). The question I wanted to answer: where does an AI agent actually add value on top of a bioinformatics pipeline that already works, without replacing the deterministic tools that make the results reproducible in the first place.
+
+The pipeline itself does not change. The core pipeline workflow of trimming, QC, alignment, counting, and differential expression is exactly as published. What sits on top is an agent that makes the judgment calls a person used to make by hand: whether a sample's QC output is clean enough to align or needs a retrim, which condition should be the reference level in the DESeq2 design, and whether a claim in a generated results summary is actually backed by the gene annotation data from user supplied GFF file.
+
+## Original publication
+
+Paropkari et al., *A Computational Workflow for Analysis of 3' Tag-Seq data.* Current Protocols (2023).
+DOI: [10.1002/cpz1.664](https://doi.org/10.1002/cpz1.664)
+
+## How it's put together
+
+The agent drives Snakemake one stage at a time instead of kicking off the whole DAG unattended, so it can look at FastQC output before deciding whether alignment should even happen. That QC decision follows fixed rules: a per-base quality or adapter failure means retry with stricter trimming, depth below a usable floor means exclude the sample outright, anything else passes through to alignment.
+
+The part I spent the most time on is the verifier that sits between the DESeq2 results and the written summary. Any claim about what a gene does gets checked against the annotation data actually retrieved for it, not just whether the AI wrote something that sounds right. That check runs in three passes: a cheap similarity filter rules out claims that aren't even about the same topic as the retrieved text, an entailment model checks whether the specific claim actually follows from that text, and a separate rule looks for hedging language in the source that got quietly dropped in the claim, since a model can turn "putative adhesin" into "adhesin" without ever technically contradicting the source.
+
+Alongside all of this is a small eval suite: thirteen cases covering the verifier, the QC decision logic, and how the pipeline wrappers handle bad input, each one stating up front what a correct answer looks like before anything gets run.
+
+## Live in action
 
 **Adaptive QC**: deciding proceed, retry, or exclude from FastQC output.
 ![Adaptive QC Demo](assets/demo_qc_decision.gif)
@@ -13,26 +44,17 @@
 **Grounded reference level**: blocks a silent alphabetical default, forces a deliberate choice from real metadata.
 ![Grounded reference level demo](assets/demo_reference_level.gif)
 
-This is a weekend project built on top of my published 3'-TagSeq RNA-seq pipeline (github.com/akshayparopkari/RNAseq). The question I wanted to answer: where does an AI agent actually add value on top of a bioinformatics pipeline that already works, without replacing the deterministic tools that make the results reproducible in the first place.
-
-The pipeline itself does not change. The core pipeline workflow of trimming, QC, alignment, counting, and differential expression is exactly as published. What sits on top is an agent that makes the judgment calls a person used to make by hand: whether a sample's QC output is clean enough to align or needs a retrim, which condition should be the reference level in the DESeq2 design, and whether a claim in a generated results summary is actually backed by the gene annotation data from user supplied GFF file.
-
-## Original publication
-
-A Computational Workflow for Analysis of 3' Tag-Seq RNA-seq data.
-DOI: https://doi.org/10.1002/cpz1.664
-
-## How it's put together
-
-The agent drives Snakemake one stage at a time instead of kicking off the whole DAG unattended, so it can look at FastQC output before deciding whether alignment should even happen. That QC decision follows fixed rules: a per-base quality or adapter failure means retry with stricter trimming, depth below a usable floor means exclude the sample outright, anything else passes through to alignment.
-
-The part I spent the most time on is the verifier that sits between the DESeq2 results and the written summary. Any claim about what a gene does gets checked against the annotation data actually retrieved for it, not just whether the AI wrote something that sounds right. That check runs in three passes: a cheap similarity filter rules out claims that aren't even about the same topic as the retrieved text, an entailment model checks whether the specific claim actually follows from that text, and a separate rule looks for hedging language in the source that got quietly dropped in the claim, since a model can turn "putative adhesin" into "adhesin" without ever technically contradicting the source.
-
-Alongside all of this is a small eval suite: thirteen cases covering the verifier, the QC decision logic, and how the pipeline wrappers handle bad input, each one stating up front what a correct answer looks like before anything gets run.
-
 ## Running it
 
 Needs `snakemake`, `bbduk.sh`, `fastqc`, `STAR`, and `R` with DESeq2 on PATH, `sentence-transformers` installed, and `ANTHROPIC_API_KEY` set.
+
+### Installation
+
+Users can use micromamba - for clean and minimal manager - or mamba or conda.
+```
+micromamba env create -f rnaseq.yml
+micromamba activate rnaseq
+```
 
 ### Full pipeline, via Snakemake directly
 
@@ -95,7 +117,6 @@ result = run_agent_loop(
 )
 print(result)
 ```
-
 Run that from `python`, `ipython`, or a script.
 
 ### Tests
